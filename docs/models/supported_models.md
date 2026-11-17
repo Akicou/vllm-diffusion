@@ -456,6 +456,7 @@ th {
 | `MixtralForCausalLM` | Mixtral-8x7B, Mixtral-8x7B-Instruct | `mistralai/Mixtral-8x7B-v0.1`, `mistralai/Mixtral-8x7B-Instruct-v0.1`, `mistral-community/Mixtral-8x22B-v0.1`, etc. | ✅︎ | ✅︎ |
 | `NemotronForCausalLM` | Nemotron-3, Nemotron-4, Minitron | `nvidia/Minitron-8B-Base`, `mgoin/Nemotron-4-340B-Base-hf-FP8`, etc. | ✅︎ | ✅︎ |
 | `NemotronHForCausalLM` | Nemotron-H | `nvidia/Nemotron-H-8B-Base-8K`, `nvidia/Nemotron-H-47B-Base-8K`, `nvidia/Nemotron-H-56B-Base-8K`, etc. | ✅︎ | ✅︎ |
+| `NemotronLabsSigmaModel` | Nemotron-Labs-Sigma (continuous diffusion) | `nvidia/Nemotron-Labs-Sigma-distill-8B-nfe4`, etc. | | |
 | `OlmoHybridForCausalLM` | OLMo Hybrid | `allenai/Olmo-Hybrid-7B` | ✅︎ | ✅︎ |
 | `OPTForCausalLM` | OPT, OPT-IML | `facebook/opt-66b`, `facebook/opt-iml-max-30b`, etc. | ✅︎ | ✅︎ |
 | `OrionForCausalLM` | Orion | `OrionStarAI/Orion-14B-Base`, `OrionStarAI/Orion-14B-Chat`, etc. | | ✅︎ |
@@ -512,6 +513,16 @@ Some models are supported only via the [Transformers modeling backend](#transfor
 
 !!! note
     Currently, the ROCm version of vLLM supports Mistral and Mixtral only for context lengths up to 4096.
+
+!!! note
+    Nemotron-Labs-Sigma generates blocks of tokens by denoising latents in a
+    continuous embedding space. Few-step distilled checkpoints run at the step
+    count they were distilled for; for other checkpoints set the number of
+    steps with `--diffusion-config '{"canvas_length": 64, "max_denoising_steps": 32}'`
+    and the sampler (`ddpm` or `ddim`), `score_temp` and `time_schedule` with
+    `--override-generation-config`. Classifier-free guidance, self-speculative
+    decoding, logprobs, per-request seeds and tensor parallelism are not
+    supported.
 
 ## List of Multimodal Language Models
 

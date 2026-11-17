@@ -707,6 +707,50 @@ class DiffusionGemmaModelForBlockDiffusionConfig(VerifyAndUpdateConfig):
             )
 
 
+class NemotronLabsSigmaModelConfig(VerifyAndUpdateConfig):
+    @classmethod
+    def verify_and_update_config(cls, vllm_config: "VllmConfig") -> None:
+        """Set up block diffusion for Nemotron-Labs-Sigma.
+
+        The block length comes from `--diffusion-config`, else the
+        checkpoint's generation config, else the reference code's default.
+        """
+        from vllm.v1.attention.backends.registry import AttentionBackendEnum
+
+        if vllm_config.parallel_config.tensor_parallel_size > 1:
+            raise ValueError(
+                "Nemotron-Labs-Sigma draws its latent noise per worker, so "
+                "tensor parallelism is not supported."
+            )
+
+        attention_config = vllm_config.attention_config
+        if attention_config.backend == AttentionBackendEnum.FLASHINFER:
+            raise ValueError(
+                "FlashInfer does not support Nemotron-Labs-Sigma's mixed "
+                "causal/bidirectional attention. Use --attention-backend "
+                "FLASH_ATTN or TRITON_ATTN instead."
+            )
+        if attention_config.backend is None and not attention_config.use_non_causal:
+            attention_config.use_non_causal = True
+
+        if vllm_config.diffusion_config is None:
+            from vllm.config.diffusion import DiffusionConfig
+
+            model_config = vllm_config.model_config
+            hf_config = model_config.hf_config
+            native = getattr(hf_config, "native_family", None) == "phased_dmd"
+            gen_config = {
+                **model_config.try_get_generation_config(),
+                **model_config.override_generation_config,
+            }
+            block_length = gen_config.get("block_length") or (
+                hf_config.block_size if native else 64
+            )
+            vllm_config.diffusion_config = DiffusionConfig(
+                canvas_length=int(block_length)
+            )
+
+
 def _indexer_sparse_logits_supported(vllm_config: "VllmConfig") -> bool:
     """Whether to enable candidate-only indexer scoring by default."""
     from vllm.platforms import current_platform
@@ -1638,6 +1682,7 @@ MODELS_CONFIG_MAP: dict[str, type[VerifyAndUpdateConfig]] = {
     "MuseGlimmerForConditionalGeneration": MuseGlimmerAttentionConfig,
     "NemotronHForCausalLM": NemotronHForCausalLMConfig,
     "NemotronHPuzzleForCausalLM": NemotronHForCausalLMConfig,
+    "NemotronLabsSigmaModel": NemotronLabsSigmaModelConfig,
     "NemotronH_Nano_VL_V2": NemotronHNanoVLV2Config,
     "NemotronH_Nano_Omni_Reasoning_V3": NemotronHNanoVLV2Config,
     "NemotronH_Super_Omni_Reasoning_V3": NemotronHNanoVLV2Config,

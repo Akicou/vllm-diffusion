@@ -29,7 +29,10 @@ from vllm.tasks import GENERATION_TASKS, POOLING_TASKS, SupportedTask
 from vllm.tokenizers import TokenizerLike
 from vllm.utils import length_from_prompt_token_ids_or_embeds, random_uuid
 from vllm.utils.async_utils import make_async
-from vllm.utils.diffusion import validate_diffusion_sampling_params
+from vllm.utils.diffusion import (
+    validate_continuous_diffusion_sampling_params,
+    validate_diffusion_sampling_params,
+)
 from vllm.utils.jsontree import json_iter_leaves
 from vllm.v1.engine import EngineCoreRequest
 from vllm.v1.kv_hints import KvHintsEnvelope
@@ -164,7 +167,9 @@ class InputProcessor:
 
             self.validate_logits_processors_params(params)
 
-            if self.model_config.is_diffusion:
+            if getattr(self.model_config.hf_config, "is_continuous_diffusion", False):
+                validate_continuous_diffusion_sampling_params(params)
+            elif self.model_config.is_diffusion:
                 # Without --diffusion-config the served canvas is unknown here;
                 # the ids and the read-only normalisation are still checked.
                 validate_diffusion_sampling_params(

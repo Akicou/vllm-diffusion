@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
-"""Request validation for discrete diffusion models."""
+"""Request validation for diffusion language models."""
 
 from typing import TYPE_CHECKING
 
@@ -103,4 +103,30 @@ def validate_diffusion_sampling_params(
         check(
             bool(params.logprob_token_ids),
             "diffusion_constrained needs logprob_token_ids: they are the allowed set.",
+        )
+
+
+def validate_continuous_diffusion_sampling_params(params: "SamplingParams") -> None:
+    """Reject options a continuous diffusion model cannot honor.
+
+    Its denoiser calls work on latents, so there is no token canvas to seed
+    or pin, and its readout reports no per-token log-probabilities.
+    """
+    if (
+        params.logprobs is not None
+        or params.prompt_logprobs is not None
+        or params.logprob_token_ids
+    ):
+        raise VLLMValidationError(
+            "logprobs are not supported with continuous diffusion models.",
+            parameter="logprobs",
+        )
+    unsupported = sorted(
+        k for k in params.extra_args or {} if k.startswith("diffusion_")
+    )
+    if unsupported:
+        raise VLLMValidationError(
+            f"{', '.join(unsupported)} are not supported with continuous "
+            "diffusion models.",
+            parameter="extra_args",
         )

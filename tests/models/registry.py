@@ -477,6 +477,9 @@ _TEXT_GENERATION_EXAMPLE_MODELS = {
         trust_remote_code=True,
         is_available_online=False,
     ),
+    "NemotronLabsSigmaModel": _HfExamplesInfo(
+        "nvidia/Nemotron-Labs-Sigma-distill-8B-nfe4"
+    ),
     "NanbeigeForCausalLM": _HfExamplesInfo(
         "Nanbeige/Nanbeige4.2-3B",
         trust_remote_code=True,
